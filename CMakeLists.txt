@@ -1,16 +1,20 @@
-# Copyright (C) 2007-2009 LuaDist.
+# Copyright (C) 2007-2011 LuaDist.
 # Created by Peter Drahoš
 # Redistribution and use of this file is allowed according to the terms of the MIT license.
 # For details see the COPYRIGHT file distributed with LuaDist.
 # Please note that the package source code is licensed under its own license.
 
-PROJECT(cosmo NONE)
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
-INCLUDE(dist.cmake)
+project ( cosmo NONE )
+cmake_minimum_required ( VERSION 2.6 )
+include ( dist.cmake )
 
-# Install all files and documentation
-INSTALL (FILES src/cosmo.lua DESTINATION ${INSTALL_LMOD})
-INSTALL (DIRECTORY src/cosmo DESTINATION ${INSTALL_LMOD})
-INSTALL (FILES README DESTINATION ${INSTALL_DATA})
-INSTALL (DIRECTORY doc/ DESTINATION ${INSTALL_DOC})
-INSTALL (DIRECTORY tests/ DESTINATION ${INSTALL_TEST})
+install_lua_module ( cosmo src/cosmo.lua )
+install_lua_module ( cosmo.fill src/cosmo/fill.lua )
+install_lua_module ( cosmo.grammar src/cosmo/grammar.lua )
+install_data ( README )
+install_doc ( doc )
+install_test ( tests )
+
+add_lua_test ( tests/test_cosmo.lua
+  ${CMAKE_CURRENT_SOURCE_DIR}/src  # workaround package.path issue (improve?)
+)
