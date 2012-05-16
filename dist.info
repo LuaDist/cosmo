@@ -1,7 +1,7 @@
 --- This file is part of LuaDist project
 
 name = "cosmo"
-version = "10.04.06"
+version = "10.04.06-1"
 
 author = "Fabio Mascarenhas, Yuri Takhteyev"
 desc = "Safe templates for Lua"
@@ -10,6 +10,6 @@ url = "http://cosmo.luaforge.net"
 maintainer = "Peter Drahoš"
 
 depends = {
-	"lua ~> 5.1",
+	"lua => 5.1",
 	"lpeg >= 0.9"
 }

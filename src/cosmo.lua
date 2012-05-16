@@ -2,11 +2,11 @@ local require = require
 
 local grammar = require "cosmo.grammar"
 local interpreter = require "cosmo.fill"
-local loadstring = loadstring
+local loadstring = loadstring or load
 
-module(..., package.seeall)
+local M = {}
 
-yield = coroutine.yield
+M.yield = coroutine.yield
 
 local preamble = [[
     local is_callable, insert, concat, setmetatable, getmetatable, type, wrap, tostring, check_selector = ...
@@ -165,7 +165,7 @@ function compiler.appl(appl)
       parsed_selector = selector }
    local do_subtemplates = function ()
 			     for i, subtemplate in ipairs(subtemplates) do
-			       yield{ i = i, subtemplate = compiler.template(subtemplate) }
+			       M.yield{ i = i, subtemplate = compiler.template(subtemplate) }
 			     end
 			   end
    if #subtemplates == 0 then
@@ -194,7 +194,7 @@ setmetatable(cache, { __index = function (tab, key)
 				end,
 		      __mode = "v" })
 
-function compile(template, chunkname, opts)
+function M.compile(template, chunkname, opts)
   opts = opts or {}
   template = template or ""
   chunkname = chunkname or template
@@ -210,13 +210,13 @@ end
 local filled_templates = {}
 setmetatable(filled_templates, { __mode = "k" })
 
-function fill(template, env, opts)
+function M.fill(template, env, opts)
    opts = opts or {}
    template = template or ""
    local start = template:match("^(%[=*%[)")
    if start then template = template:sub(#start + 1, #template - #start) end
    if filled_templates[template] then 
-      return compile(template, opts.chunkname, opts.parser)(env, opts)
+      return M.compile(template, opts.chunkname, opts.parser)(env, opts)
    else
       filled_templates[template] = true
       return interpreter.fill(template, env, opts)
@@ -225,109 +225,111 @@ end
 
 local nop = function () end
 
-function cond(bool, table)
+function M.cond(bool, table)
    if bool then
-      return function () yield(table) end
+      return function () M.yield(table) end
    else
       return nop
    end
 end
 
-f = compile
+M.f = M.compile
 
-function c(bool)
+function M.c(bool)
    if bool then 
       return function (table)
-		return function () yield(table) end
+		return function () M.yield(table) end
 	     end
    else
       return function (table) return nop end
    end
 end
 
-function map(arg, has_block)
+function M.map(arg, has_block)
    if has_block then
       for _, item in ipairs(arg) do
-	 cosmo.yield(item)
+	 M.yield(item)
       end
    else
       return table.concat(arg)
    end
 end
 
-function inject(arg)
-   cosmo.yield(arg)
+function M.inject(arg)
+   M.yield(arg)
 end
 
-function cif(arg, has_block)
+function M.cif(arg, has_block)
   if not has_block then error("this selector needs a block") end
   if arg[1] then
     arg._template = 1
   else
     arg._template = 2
   end
-  cosmo.yield(arg)
+  M.yield(arg)
 end
 
-function concat(arg)
+function M.concat(arg)
   local list, sep = arg[1], arg[2] or ", "
   local size = #list
   for i, e in ipairs(list) do
     if type(e) == "table" then
       if i ~= size then
-	cosmo.yield(e)
-	cosmo.yield(sep, true)
+	M.yield(e)
+	M.yield(sep, true)
       else
-	cosmo.yield(e)
+	M.yield(e)
       end
     else
       if i ~= size then
-	cosmo.yield{ it = e }
-	cosmo.yield(sep, true)
+	M.yield{ it = e }
+	M.yield(sep, true)
       else
-	cosmo.yield{ it = e }
+	M.yield{ it = e }
       end
     end
   end
 end
 
-function make_concat(list)
+function M.make_concat(list)
   return function (arg)
 	   local sep = (arg and arg[1]) or ", "
 	   local size = #list
 	   for i, e in ipairs(list) do
 	     if type(e) == "table" then
 	       if i ~= size then
-		 cosmo.yield(e)
-		 cosmo.yield(sep, true)
+		 M.yield(e)
+		 M.yield(sep, true)
 	       else
-		 cosmo.yield(e)
+		 M.yield(e)
 	       end
 	     else
 	       if i ~= size then
-		 cosmo.yield{ it = e }
-		 cosmo.yield(sep, true)
+		 M.yield{ it = e }
+		 M.yield(sep, true)
 	       else
-		 cosmo.yield{ it = e }
+		 M.yield{ it = e }
 	       end
 	     end
 	   end
 	 end
 end
 
-function cfor(args)
+function M.cfor(args)
   local name, list, args = args[1], args[2], args[3]
   if type(list) == "table" then
     for i, item in ipairs(list) do
-      cosmo.yield({ [name] = item, i = i })
+      M.yield({ [name] = item, i = i })
     end
   else
     for item, literal in coroutine.wrap(list), args, true do
       if literal then
-	cosmo.yield(item, true)
+	M.yield(item, true)
       else
-	cosmo.yield({ [name] = item })
+	M.yield({ [name] = item })
       end
     end
   end
 end
+
+return M

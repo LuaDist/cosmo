@@ -1,3 +1,4 @@
+package.path = package.path..";../src/?.lua"
 local cosmo = require"cosmo"
 local grammar = require"cosmo.grammar"
 

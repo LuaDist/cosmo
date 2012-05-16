@@ -1,8 +1,8 @@
 
+local M = {}
 local lpeg = require "lpeg"
 local re = require "re"
-
-module(..., package.seeall)
+local unpack = unpack or table.unpack
 
 local function parse_selector(selector, env)
   env = env or "env"
@@ -126,7 +126,7 @@ end
 local function ast_subtemplate(text)
   local start = text:match("^(%[=*%[)")
   if start then text = text:sub(#start + 1, #text - #start) end
-  return _M.ast:match(text)
+  return M.ast:match(text)
 end
 
 local syntax_defs = {
@@ -152,10 +152,11 @@ local syntax_defs = {
   compilesubtemplate = ast_subtemplate
 }
 
-function new(lbra, rbra)
+function M.new(lbra, rbra)
   lbra = lbra or "("
   rbra = rbra or ")"
   return re.compile(syntax(lbra, rbra), syntax_defs)
 end
 
-default = new()
+M.default = M.new()
+return M
