@@ -1,0 +1,38 @@
+type = "x86_64"
+arch = "Ubuntu"
+author = "Fabio Mascarenhas, Yuri Takhteyev"
+depends = {
+[[lua ~> 5.1]],
+[[lpeg >= 0.9]],
+}
+
+desc = "Safe templates for Lua"
+version = "10.04.06"
+maintainer = "Peter Drahoš"
+files = {
+Runtime = {
+[[lib/lua/cosmo.lua]],
+[[lib/lua/cosmo/fill.lua]],
+[[lib/lua/cosmo/grammar.lua]],
+}
+,
+Documentation = {
+[[share/cosmo/doc//cosmo.png]],
+[[share/cosmo/doc//cosmo.md]],
+[[share/cosmo/doc//dummy]],
+[[share/cosmo/doc//index.html]],
+}
+,
+Data = {
+[[share/cosmo/README]],
+}
+,
+Test = {
+[[share/cosmo/test//test_cosmo.lua]],
+}
+,
+}
+
+license = "MIT/X11"
+name = "cosmo"
+url = "http://cosmo.luaforge.net"
