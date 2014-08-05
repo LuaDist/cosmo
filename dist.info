@@ -1,7 +1,7 @@
 --- This file is part of LuaDist project
 
 name = "cosmo"
-version = "10.04.06"
+version = "14.03.04"
 
 author = "Fabio Mascarenhas, Yuri Takhteyev"
 desc = "Safe templates for Lua"
