@@ -2,11 +2,16 @@ local require = require
 
 local grammar = require "cosmo.grammar"
 local interpreter = require "cosmo.fill"
-local loadstring = loadstring or load
+local loadstring = loadstring
 
-local M = {}
+if _VERSION == "Lua 5.2" then
+  _ENV = setmetatable({}, { __index = _G })
+else
+  module(..., package.seeall)
+  _ENV = _M
+end
 
-M.yield = coroutine.yield
+yield = coroutine.yield
 
 local preamble = [[
     local is_callable, insert, concat, setmetatable, getmetatable, type, wrap, tostring, check_selector = ...
@@ -17,104 +22,104 @@ local preamble = [[
     end
     local function prepare_env(env, parent)
       local __index = function (t, k)
-			local v = env[k]
-			if not v then
-			  v = parent[k]
-			end
-			return v
-		      end
+                        local v = env[k]
+                        if not v then
+                          v = parent[k]
+                        end
+                        return v
+                      end
       local __newindex = function (t, k, v)
-			   env[k] = v
-			 end
+                           env[k] = v
+                         end
       return setmetatable({ self = env }, { __index = __index, __newindex = __newindex })
     end
     local id = function () end
     local template_func = %s
-    return function (env, opts) 
-	     opts = opts or {}
-	     local out = opts.out or {}
-	     template_func(out, env, opts)
-	     return concat(out, opts.delim)
-	   end
+    return function (env, opts)
+             opts = opts or {}
+             local out = opts.out or {}
+             template_func(out, env, opts)
+             return concat(out, opts.delim)
+           end
 ]]
 
 local compiled_template = [[
     function (out, env, opts)
       if type(env) == "string" then env = { it = env } end
       $parts[=[
-	  insert(out, $quoted_text)
+          insert(out, $quoted_text)
       ]=],
       [=[
-	  local selector_name = unparse_name($selector)
-	  local selector = $parsed_selector
-	  $if_subtemplate[==[
-	      local subtemplates = {}
-	      $subtemplates[===[
-		  subtemplates[$i] = $subtemplate
-	      ]===]
+          local selector_name = unparse_name($selector)
+          local selector = $parsed_selector
+          $if_subtemplate[==[
+              local subtemplates = {}
+              $subtemplates[===[
+                  subtemplates[$i] = $subtemplate
+              ]===]
               local default = id
-	      if opts.fallback then
-		default = subtemplates[1]
-	      end
-	      $if_args[===[
-		  check_selector(selector_name, selector)
-		  for e, literal in wrap(selector), $args, true do
-		    if literal then
-		      insert(out, tostring(e))
-		    else
-		      if type(e) ~= "table" then
-			e = prepare_env({ it = tostring(e) }, env)
-		      else
-			e = prepare_env(e, env)
-		      end
-		      (subtemplates[e.self._template or 1] or default)(out, e, opts)
-		    end
-		  end
-	      ]===],
-	      [===[
-		  if type(selector) == 'table' then
-		    for _, e in ipairs(selector) do
-		      if type(e) ~= "table" then
-			e = prepare_env({ it = tostring(e) }, env)
-		      else
-			e = prepare_env(e, env)
-		      end
-		      (subtemplates[e.self._template or 1] or default)(out, e, opts)
-		    end
-		  else
-		    check_selector(selector_name, selector)
-		    for e, literal in wrap(selector), nil, true do
-		      if literal then
-			insert(out, tostring(e))
-		      else
-			if type(e) ~= "table" then
-			  e = prepare_env({ it = tostring(e) }, env)
-			else
-			  e = prepare_env(e, env)
-			end
-			(subtemplates[e.self._template or 1] or default)(out, e, opts)
-		      end
-		    end
-		  end
-	      ]===]
-	  ]==],
-	  [==[
-	      $if_args[===[
-		  check_selector(selector_name, selector)
-		  selector = selector($args, false)
-		  insert(out, tostring(selector))
-	      ]===],
-	      [===[
-		  if is_callable(selector) then
-		    insert(out, tostring(selector()))
-		  else
-		    if not selector and opts.passthrough then
-		      selector = selector_name
-		    end
-		    insert(out, tostring(selector or ""))
-		  end
-	      ]===]
-	  ]==]
+              if opts.fallback then
+                default = subtemplates[1]
+              end
+              $if_args[===[
+                  check_selector(selector_name, selector)
+                  for e, literal in wrap(selector), $args, true do
+                    if literal then
+                      insert(out, tostring(e))
+                    else
+                      if type(e) ~= "table" then
+                        e = prepare_env({ it = tostring(e) }, env)
+                      else
+                        e = prepare_env(e, env)
+                      end
+                      (subtemplates[e.self._template or 1] or default)(out, e, opts)
+                    end
+                  end
+              ]===],
+              [===[
+                  if type(selector) == 'table' then
+                    for _, e in ipairs(selector) do
+                      if type(e) ~= "table" then
+                        e = prepare_env({ it = tostring(e) }, env)
+                      else
+                        e = prepare_env(e, env)
+                      end
+                      (subtemplates[e.self._template or 1] or default)(out, e, opts)
+                    end
+                  else
+                    check_selector(selector_name, selector)
+                    for e, literal in wrap(selector), nil, true do
+                      if literal then
+                        insert(out, tostring(e))
+                      else
+                        if type(e) ~= "table" then
+                          e = prepare_env({ it = tostring(e) }, env)
+                        else
+                          e = prepare_env(e, env)
+                        end
+                        (subtemplates[e.self._template or 1] or default)(out, e, opts)
+                      end
+                    end
+                  end
+              ]===]
+          ]==],
+          [==[
+              $if_args[===[
+                  check_selector(selector_name, selector)
+                  selector = selector($args, false)
+                  insert(out, tostring(selector))
+              ]===],
+              [===[
+                  if is_callable(selector) then
+                    insert(out, tostring(selector()))
+                  else
+                    if not selector and opts.passthrough then
+                      selector = selector_name
+                    end
+                    insert(out, tostring(selector or ""))
+                  end
+              ]===]
+          ]==]
       ]=]
     end
 ]]
@@ -138,7 +143,7 @@ local function compile_template(chunkname, template_code)
      error("syntax error when compiling template: " .. err)
    else
      return template_func(is_callable, table.insert, table.concat, setmetatable, getmetatable, type,
-			  coroutine.wrap, tostring, check_selector)
+                          coroutine.wrap, tostring, check_selector)
    end
 end
 
@@ -161,13 +166,13 @@ end
 function compiler.appl(appl)
   assert(appl.tag == "appl")
   local selector, args, subtemplates = appl.selector, appl.args, appl.subtemplates
-  local ta = { _template = 2, selector = string.format("%q", selector), 
+  local ta = { _template = 2, selector = string.format("%q", selector),
       parsed_selector = selector }
    local do_subtemplates = function ()
-			     for i, subtemplate in ipairs(subtemplates) do
-			       M.yield{ i = i, subtemplate = compiler.template(subtemplate) }
-			     end
-			   end
+                             for i, subtemplate in ipairs(subtemplates) do
+                               yield{ i = i, subtemplate = compiler.template(subtemplate) }
+                             end
+                           end
    if #subtemplates == 0 then
      if args and args ~= "" and args ~= "{}" then
        ta.if_subtemplate = { { _template = 2, if_args = { { _template = 1, args = args } } } }
@@ -177,10 +182,10 @@ function compiler.appl(appl)
    else
      if args and args ~= "" and args ~= "{}" then
        ta.if_subtemplate = { { _template = 1, subtemplates = do_subtemplates,
-			       if_args = { { _template = 1, args = args } } } }
+                               if_args = { { _template = 1, args = args } } } }
      else
        ta.if_subtemplate = { { _template = 1, subtemplates = do_subtemplates,
-			       if_args = { { _template = 2 } } } }
+                               if_args = { { _template = 2 } } } }
      end
    end
    return ta
@@ -188,13 +193,13 @@ end
 
 local cache = {}
 setmetatable(cache, { __index = function (tab, key)
-				   local new = {}
-				   tab[key] = new
-				   return new
-				end,
-		      __mode = "v" })
+                                   local new = {}
+                                   tab[key] = new
+                                   return new
+                                end,
+                      __mode = "v" })
 
-function M.compile(template, chunkname, opts)
+function compile(template, chunkname, opts)
   opts = opts or {}
   template = template or ""
   chunkname = chunkname or template
@@ -210,13 +215,13 @@ end
 local filled_templates = {}
 setmetatable(filled_templates, { __mode = "k" })
 
-function M.fill(template, env, opts)
+function fill(template, env, opts)
    opts = opts or {}
    template = template or ""
    local start = template:match("^(%[=*%[)")
    if start then template = template:sub(#start + 1, #template - #start) end
-   if filled_templates[template] then 
-      return M.compile(template, opts.chunkname, opts.parser)(env, opts)
+   if filled_templates[template] then
+      return compile(template, opts.chunkname, opts.parser)(env, opts)
    else
       filled_templates[template] = true
       return interpreter.fill(template, env, opts)
@@ -225,111 +230,111 @@ end
 
 local nop = function () end
 
-function M.cond(bool, table)
+function cond(bool, table)
    if bool then
-      return function () M.yield(table) end
+      return function () yield(table) end
    else
       return nop
    end
 end
 
-M.f = M.compile
+f = compile
 
-function M.c(bool)
-   if bool then 
+function c(bool)
+   if bool then
       return function (table)
-		return function () M.yield(table) end
-	     end
+                return function () yield(table) end
+             end
    else
       return function (table) return nop end
    end
 end
 
-function M.map(arg, has_block)
+function map(arg, has_block)
    if has_block then
       for _, item in ipairs(arg) do
-	 M.yield(item)
+         yield(item)
       end
    else
       return table.concat(arg)
    end
 end
 
-function M.inject(arg)
-   M.yield(arg)
+function inject(arg)
+   yield(arg)
 end
 
-function M.cif(arg, has_block)
+function cif(arg, has_block)
   if not has_block then error("this selector needs a block") end
   if arg[1] then
     arg._template = 1
   else
     arg._template = 2
   end
-  M.yield(arg)
+  yield(arg)
 end
 
-function M.concat(arg)
+function concat(arg)
   local list, sep = arg[1], arg[2] or ", "
   local size = #list
   for i, e in ipairs(list) do
     if type(e) == "table" then
       if i ~= size then
-	M.yield(e)
-	M.yield(sep, true)
+        yield(e)
+        yield(sep, true)
       else
-	M.yield(e)
+        yield(e)
       end
     else
       if i ~= size then
-	M.yield{ it = e }
-	M.yield(sep, true)
+        yield{ it = e }
+        yield(sep, true)
       else
-	M.yield{ it = e }
+        yield{ it = e }
       end
     end
   end
 end
 
-function M.make_concat(list)
+function make_concat(list)
   return function (arg)
-	   local sep = (arg and arg[1]) or ", "
-	   local size = #list
-	   for i, e in ipairs(list) do
-	     if type(e) == "table" then
-	       if i ~= size then
-		 M.yield(e)
-		 M.yield(sep, true)
-	       else
-		 M.yield(e)
-	       end
-	     else
-	       if i ~= size then
-		 M.yield{ it = e }
-		 M.yield(sep, true)
-	       else
-		 M.yield{ it = e }
-	       end
-	     end
-	   end
-	 end
+           local sep = (arg and arg[1]) or ", "
+           local size = #list
+           for i, e in ipairs(list) do
+             if type(e) == "table" then
+               if i ~= size then
+                 yield(e)
+                 yield(sep, true)
+               else
+                 yield(e)
+               end
+             else
+               if i ~= size then
+                 yield{ it = e }
+                 yield(sep, true)
+               else
+                 yield{ it = e }
+               end
+             end
+           end
+         end
 end
 
-function M.cfor(args)
+function cfor(args)
   local name, list, args = args[1], args[2], args[3]
   if type(list) == "table" then
     for i, item in ipairs(list) do
-      M.yield({ [name] = item, i = i })
+      yield({ [name] = item, i = i })
     end
   else
     for item, literal in coroutine.wrap(list), args, true do
       if literal then
-	M.yield(item, true)
+        yield(item, true)
       else
-	M.yield({ [name] = item })
+        yield({ [name] = item })
       end
     end
   end
 end
 
-return M
+return _ENV
